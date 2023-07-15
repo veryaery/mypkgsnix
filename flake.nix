@@ -8,16 +8,27 @@
     let
         outputs = flake-utils.lib.eachDefaultSystem (system:
             let
+                std = nixpkgs.lib;
+                
+                inherit (builtins)
+                    mapAttrs
+                    readDir;
+
+                inherit (std.trivial)
+                    const;
+
+                inherit (std.attrsets)
+                    filterAttrs;
+
                 pkgs = nixpkgs.legacyPackages.${system};
-                legacyPackages = {
-                    fontfreeze-cli = import ./fontfreeze-cli (pkgs // legacyPackages);
-                    labwc = import ./labwc (pkgs // legacyPackages);
-                    pastel = import ./pastel (pkgs // legacyPackages);
-                    fundle = import ./fundle (pkgs // legacyPackages);
-                    fira-code-with-features = import ./fira-code-with-features (pkgs // legacyPackages);
-                    zrythm = import ./zrythm (pkgs // legacyPackages);
-                    cardinal = import ./cardinal (pkgs // legacyPackages);
-                };
+                packageDirs =
+                    filterAttrs
+                    (const (fileType: fileType == "directory"))
+                    (readDir ./.);
+                legacyPackages =
+                    mapAttrs
+                    (name: const (import (./. + "/${name}") (pkgs // legacyPackages)))
+                    packageDirs;
             in { inherit legacyPackages; }
         );
     in outputs;
